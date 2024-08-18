@@ -40,6 +40,19 @@ public class Constants {
     public static final String KEY_POST_LIKES = "likes";
     public static final String KEY_POST_COMMENTS = "comments";
 
+
+    // New constants for friend functionality
+    public static final String KEY_COLLECTION_FRIENDSHIPS = "friendships";
+    public static final String KEY_COLLECTION_FRIEND_REQUESTS = "friendRequests";
+    public static final String KEY_FRIEND_ID = "friendId";
+    public static final String KEY_REQUEST_STATUS = "requestStatus";
+    public static final String KEY_FRIEND_COUNT = "friendCount";
+    public static final String KEY_LAST_FRIEND_UPDATE = "lastFriendUpdate";
+
+    // Request status values
+    public static final String REQUEST_STATUS_PENDING = "pending";
+    public static final String REQUEST_STATUS_ACCEPTED = "accepted";
+    public static final String REQUEST_STATUS_REJECTED = "rejected";
     public static HashMap<String, String> remoteMsgHeaders = null;
     public static HashMap<String, String> getRemoteMsgHeaders() {
         if (remoteMsgHeaders == null) {

@@ -14,7 +14,6 @@ import androidx.fragment.app.FragmentTransaction;
 import com.example.myapplication.R;
 import com.example.myapplication.databinding.ActivityMainBinding;
 import com.example.myapplication.fragments.HomeFragment;
-import com.example.myapplication.fragments.FriendListFragment;
 //import com.example.myapplication.fragments.ProfileFragment;
 import com.example.myapplication.utilities.Constants;
 import com.example.myapplication.utilities.PreferenceManager;
@@ -56,9 +55,9 @@ public class MainActivity extends AppCompatActivity implements BottomNavigationV
 
         if (item.getItemId() == R.id.navigation_home) {
             fragment = new HomeFragment();
-        } else if (item.getItemId() == R.id.navigation_friends) {
+        } /*else if (item.getItemId() == R.id.navigation_friends) {
             fragment = new FriendListFragment();
-        } /*else if (item.getItemId() == R.id.navigation_profile) {
+        } else if (item.getItemId() == R.id.navigation_profile) {
             fragment = new ProfileFragment();
         }*/
 

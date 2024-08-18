@@ -13,6 +13,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
@@ -62,14 +64,14 @@ public class HomeFragment extends Fragment {
 
     private void init() {
         posts = new ArrayList<>();
-        postAdapter = new PostAdapter(posts, preferenceManager.getString(Constants.KEY_USER_ID));
+        postAdapter = new PostAdapter(posts);
         binding.recyclerViewPosts.setAdapter(postAdapter);
         binding.recyclerViewPosts.setLayoutManager(new LinearLayoutManager(getContext()));
         database = FirebaseFirestore.getInstance();
     }
 
     private void setListeners() {
-        binding.layoutCreatePost.imageAddImage.setOnClickListener(v -> {
+        binding.layoutCreatePost.buttonAddImage.setOnClickListener(v -> {
             Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
             intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             pickImage.launch(intent);
@@ -88,7 +90,7 @@ public class HomeFragment extends Fragment {
     private void postStatus() {
         HashMap<String, Object> post = new HashMap<>();
         post.put(Constants.KEY_USER_ID, preferenceManager.getString(Constants.KEY_USER_ID));
-        post.put(Constants.KEY_POST_CONTENT, binding.layoutCreatePost.inputPost.getText().toString());
+        post.put(Constants.KEY_POST_CONTENT, binding.layoutCreatePost.editTextPost.getText().toString());
         post.put(Constants.KEY_POST_TIMESTAMP, System.currentTimeMillis());
         if (encodedImage != null) {
             post.put(Constants.KEY_POST_IMAGE, encodedImage);
@@ -97,9 +99,9 @@ public class HomeFragment extends Fragment {
                 .add(post)
                 .addOnSuccessListener(documentReference -> {
                     showToast("Posted Successfully");
-                    binding.layoutCreatePost.inputPost.setText(null);
-                    binding.layoutCreatePost.imagePost.setImageBitmap(null);
-                    binding.layoutCreatePost.imagePost.setVisibility(View.GONE);
+                    binding.layoutCreatePost.editTextPost.setText(null);
+                    binding.layoutCreatePost.imageViewPreview.setImageBitmap(null);
+                    binding.layoutCreatePost.imageViewPreview.setVisibility(View.GONE);
                     encodedImage = null;
                 })
                 .addOnFailureListener(exception -> {
@@ -108,7 +110,7 @@ public class HomeFragment extends Fragment {
     }
 
     private Boolean isValidPostDetails() {
-        if (binding.layoutCreatePost.inputPost.getText().toString().trim().isEmpty() && encodedImage == null) {
+        if (binding.layoutCreatePost.editTextPost.getText().toString().trim().isEmpty() && encodedImage == null) {
             showToast("Enter a status or add an image");
             return false;
         } else {
@@ -135,8 +137,8 @@ public class HomeFragment extends Fragment {
                         try {
                             InputStream inputStream = requireActivity().getContentResolver().openInputStream(imageUri);
                             Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
-                            binding.layoutCreatePost.imagePost.setImageBitmap(bitmap);
-                            binding.layoutCreatePost.imagePost.setVisibility(View.VISIBLE);
+                            binding.layoutCreatePost.imageViewPreview.setImageBitmap(bitmap);
+                            binding.layoutCreatePost.imageViewPreview.setVisibility(View.VISIBLE);
                             encodedImage = encodeImage(bitmap);
                         } catch (FileNotFoundException e) {
                             e.printStackTrace();
@@ -159,15 +161,15 @@ public class HomeFragment extends Fragment {
             for (DocumentChange documentChange : value.getDocumentChanges()) {
                 if (documentChange.getType() == DocumentChange.Type.ADDED) {
                     Post post = new Post();
-                    post.id = documentChange.getDocument().getId();
-                    post.userId = documentChange.getDocument().getString(Constants.KEY_USER_ID);
-                    post.content = documentChange.getDocument().getString(Constants.KEY_POST_CONTENT);
-                    post.image = documentChange.getDocument().getString(Constants.KEY_POST_IMAGE);
-                    post.timestamp = documentChange.getDocument().getLong(Constants.KEY_POST_TIMESTAMP);
+                    post.setId(documentChange.getDocument().getId());
+                    post.setUserId(documentChange.getDocument().getString(Constants.KEY_USER_ID));
+                    post.setContent(documentChange.getDocument().getString(Constants.KEY_POST_CONTENT));
+                    post.setImageUrl(documentChange.getDocument().getString(Constants.KEY_POST_IMAGE));
+                    post.setTimestamp(documentChange.getDocument().getTimestamp(Constants.KEY_POST_TIMESTAMP));
                     posts.add(post);
                 }
             }
-            Collections.sort(posts, (obj1, obj2) -> Long.compare(obj2.timestamp, obj1.timestamp));
+            Collections.sort(posts, (obj1, obj2) -> obj2.getTimestamp().compareTo(obj1.getTimestamp()));
             postAdapter.notifyDataSetChanged();
             binding.recyclerViewPosts.smoothScrollToPosition(0);
         }
