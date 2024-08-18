@@ -64,8 +64,8 @@ public class SignUpActivity extends AppCompatActivity {
         FirebaseFirestore database = FirebaseFirestore.getInstance();
 
         String email = binding.inputEmail.getText().toString();
-        database.collection(Constants.Key_COLLECTION_USER)
-                .whereEqualTo(Constants.Key_EMAIL, email)
+        database.collection(Constants.KEY_COLLECTION_USERS)
+                .whereEqualTo(Constants.KEY_EMAIL, email)
                 .get()
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful() && !task.getResult().isEmpty()) {
@@ -75,20 +75,20 @@ public class SignUpActivity extends AppCompatActivity {
                         });
                     } else {
                         HashMap<String, Object> user = new HashMap<>();
-                        user.put(Constants.Key_NAME, binding.inputName.getText().toString());
-                        user.put(Constants.Key_EMAIL, email);
-                        user.put(Constants.Key_PASSWORD, binding.inputPassword.getText().toString());
-                        user.put(Constants.Key_IMAGE, encodedImage);
-                        user.put(Constants.Key_FRIENDS, new ArrayList<String>()); // Add empty friends array
-                        user.put(Constants.Key_POSTS, new ArrayList<String>()); // Add empty posts array
-                        database.collection(Constants.Key_COLLECTION_USER).add(user)
+                        user.put(Constants.KEY_NAME, binding.inputName.getText().toString());
+                        user.put(Constants.KEY_EMAIL, email);
+                        user.put(Constants.KEY_PASSWORD, binding.inputPassword.getText().toString());
+                        user.put(Constants.KEY_IMAGE, encodedImage);
+                        user.put(Constants.KEY_FRIENDS, new ArrayList<String>()); // Add empty friends array
+                        user.put(Constants.KEY_POSTS, new ArrayList<String>()); // Add empty posts array
+                        database.collection(Constants.KEY_COLLECTION_USERS).add(user)
                                 .addOnSuccessListener(documentReference -> {
                                     runOnUiThread(() -> {
                                         loading(false);
-                                        preferenceManager.putBoolean(Constants.Key_IS_SIGNED_IN, true);
-                                        preferenceManager.putString(Constants.Key_USER_ID, documentReference.getId());
-                                        preferenceManager.putString(Constants.Key_NAME, binding.inputName.getText().toString());
-                                        preferenceManager.putString(Constants.Key_IMAGE, encodedImage);
+                                        preferenceManager.putBoolean(Constants.KEY_IS_SIGNED_IN, true);
+                                        preferenceManager.putString(Constants.KEY_USER_ID, documentReference.getId());
+                                        preferenceManager.putString(Constants.KEY_NAME, binding.inputName.getText().toString());
+                                        preferenceManager.putString(Constants.KEY_IMAGE, encodedImage);
                                         Intent intent = new Intent(getApplicationContext(), MainActivity.class);
                                         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                                         startActivity(intent);

@@ -2,23 +2,31 @@ package com.example.myapplication.activities;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.view.View;
+import android.view.MenuItem;
 import android.widget.Toast;
 
-import androidx.annotation.Nullable;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentPagerAdapter;
-import com.google.firebase.firestore.FirebaseFirestore;
-import androidx.viewpager.widget.ViewPager;
+import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentTransaction;
 
+import com.example.myapplication.R;
 import com.example.myapplication.databinding.ActivityMainBinding;
-import com.google.android.material.tabs.TabLayout;
+import com.example.myapplication.fragments.HomeFragment;
+import com.example.myapplication.fragments.FriendListFragment;
+//import com.example.myapplication.fragments.ProfileFragment;
+import com.example.myapplication.utilities.Constants;
+import com.example.myapplication.utilities.PreferenceManager;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.messaging.FirebaseMessaging;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements BottomNavigationView.OnNavigationItemSelectedListener {
 
     private ActivityMainBinding binding;
-    private FragmentPagerAdapter fragmentPagerAdapter;
+    private PreferenceManager preferenceManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -26,55 +34,60 @@ public class MainActivity extends AppCompatActivity {
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        setupViewPagerAndTabs();
-        setupListeners();
+        preferenceManager = new PreferenceManager(getApplicationContext());
+
+        if (!preferenceManager.getBoolean(Constants.KEY_IS_SIGNED_IN)) {
+            startActivity(new Intent(getApplicationContext(), SignInActivity.class));
+            finish();
+            return;
+        }
+
+        binding.bottomNavigationView.setOnNavigationItemSelectedListener(this);
+
+        // Load HomeFragment by default
+        loadFragment(new HomeFragment());
+
+        getToken();
     }
 
-    private void setupViewPagerAndTabs() {
-        fragmentPagerAdapter = new FragmentPagerAdapter(getSupportFragmentManager(), FragmentPagerAdapter.BEHAVIOR_RESUME_ONLY_CURRENT_FRAGMENT) {
-            @Override
-            public Fragment getItem(int position) {
-                switch (position) {
-                    case 0:
-                        return new NewsFeedFragment(); // Bảng tin
-                    case 1:
-                        return new FriendsFragment(); // Kết bạn
-                    case 2:
-                        return new ProfileFragment(); // Hồ sơ cá nhân
-                    default:
-                        return null;
-                }
-            }
+    @Override
+    public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+        Fragment fragment = null;
 
-            @Override
-            public int getCount() {
-                return 3;
-            }
+        if (item.getItemId() == R.id.navigation_home) {
+            fragment = new HomeFragment();
+        } else if (item.getItemId() == R.id.navigation_friends) {
+            fragment = new FriendListFragment();
+        } /*else if (item.getItemId() == R.id.navigation_profile) {
+            fragment = new ProfileFragment();
+        }*/
 
-            @Nullable
-            @Override
-            public CharSequence getPageTitle(int position) {
-                switch (position) {
-                    case 0:
-                        return "Bảng tin";
-                    case 1:
-                        return "Bạn bè";
-                    case 2:
-                        return "Hồ sơ";
-                    default:
-                        return null;
-                }
-            }
-        };
-
-        binding.viewPager.setAdapter(fragmentPagerAdapter);
-        binding.tabLayout.setupWithViewPager(binding.viewPager);
+        if (fragment != null) {
+            loadFragment(fragment);
+            return true;
+        }
+        return false;
     }
 
-    private void setupListeners() {
-        binding.fabCreatePost.setOnClickListener(v -> startActivity(new Intent(getApplicationContext(), CreatePostActivity.class)));
-        binding.fabAddFriend.setOnClickListener(v -> startActivity(new Intent(getApplicationContext(), FriendsActivity.class)));
-        binding.fabProfile.setOnClickListener(v -> startActivity(new Intent(getApplicationContext(), ProfileActivity.class)));
+    private void loadFragment(Fragment fragment) {
+        FragmentManager fragmentManager = getSupportFragmentManager();
+        FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
+        fragmentTransaction.replace(R.id.frame_layout, fragment);
+        fragmentTransaction.commit();
+    }
+
+    private void getToken() {
+        FirebaseMessaging.getInstance().getToken().addOnSuccessListener(this::updateToken);
+    }
+
+    private void updateToken(String token) {
+        FirebaseFirestore database = FirebaseFirestore.getInstance();
+        DocumentReference documentReference =
+                database.collection(Constants.KEY_COLLECTION_USERS).document(
+                        preferenceManager.getString(Constants.KEY_USER_ID)
+                );
+        documentReference.update(Constants.KEY_FCM_TOKEN, token)
+                .addOnFailureListener(e -> showToast("Unable to update token"));
     }
 
     private void showToast(String message) {

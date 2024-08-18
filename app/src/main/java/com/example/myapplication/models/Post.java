@@ -1,3 +1,5 @@
+package com.example.myapplication.models;
+
 import com.google.firebase.Timestamp;
 import java.util.List;
 
