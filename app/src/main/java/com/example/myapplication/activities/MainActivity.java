@@ -2,6 +2,7 @@ package com.example.myapplication.activities;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.MenuItem;
 import android.widget.Toast;
 
@@ -33,6 +34,11 @@ public class MainActivity extends AppCompatActivity implements BottomNavigationV
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
+        if (findViewById(R.id.frame_layout) == null) {
+            Log.e("MainActivity", "frame_layout not found in the layout");
+        } else {
+            Log.d("MainActivity", "frame_layout found successfully");
+        }
         preferenceManager = new PreferenceManager(getApplicationContext());
 
         if (!preferenceManager.getBoolean(Constants.KEY_IS_SIGNED_IN)) {
@@ -69,11 +75,18 @@ public class MainActivity extends AppCompatActivity implements BottomNavigationV
     }
 
     private void loadFragment(Fragment fragment) {
-        FragmentManager fragmentManager = getSupportFragmentManager();
-        FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
-        fragmentTransaction.replace(R.id.frame_layout, fragment);
-        fragmentTransaction.commit();
+        try {
+            FragmentManager fragmentManager = getSupportFragmentManager();
+            FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
+            fragmentTransaction.replace(R.id.frame_layout, fragment);
+            fragmentTransaction.commit();
+            Log.d("MainActivity", "Loaded fragment: " + fragment.getClass().getSimpleName());
+        } catch (Exception e) {
+            Log.e("MainActivity", "Error loading fragment", e);
+            showToast("Error loading content. Please try again.");
+        }
     }
+
 
     private void getToken() {
         FirebaseMessaging.getInstance().getToken().addOnSuccessListener(this::updateToken);

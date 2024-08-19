@@ -8,6 +8,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.Base64;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -29,12 +30,14 @@ import com.google.firebase.firestore.DocumentChange;
 import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QuerySnapshot;
+import com.google.firebase.Timestamp;
 
 import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 
@@ -50,6 +53,11 @@ public class HomeFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         binding = FragmentHomeBinding.inflate(inflater, container, false);
+        if (binding.getRoot() == null) {
+            Log.e("HomeFragment", "Fragment root view is null");
+        } else {
+            Log.d("HomeFragment", "Fragment root view inflated successfully");
+        }
         return binding.getRoot();
     }
 
@@ -65,8 +73,13 @@ public class HomeFragment extends Fragment {
     private void init() {
         posts = new ArrayList<>();
         postAdapter = new PostAdapter(posts);
-        binding.recyclerViewPosts.setAdapter(postAdapter);
-        binding.recyclerViewPosts.setLayoutManager(new LinearLayoutManager(getContext()));
+        if (binding.recyclerViewPosts == null) {
+            Log.e("HomeFragment", "recyclerViewPosts is null");
+        } else {
+            Log.d("HomeFragment", "Setting up RecyclerView");
+            binding.recyclerViewPosts.setAdapter(postAdapter);
+            binding.recyclerViewPosts.setLayoutManager(new LinearLayoutManager(getContext()));
+        }
         database = FirebaseFirestore.getInstance();
     }
 
@@ -88,26 +101,61 @@ public class HomeFragment extends Fragment {
     }
 
     private void postStatus() {
+        if (binding == null) {
+            Log.e("HomeFragment", "Binding is null");
+            return;
+        }
+
+        loading(true);
         HashMap<String, Object> post = new HashMap<>();
         post.put(Constants.KEY_USER_ID, preferenceManager.getString(Constants.KEY_USER_ID));
         post.put(Constants.KEY_POST_CONTENT, binding.layoutCreatePost.editTextPost.getText().toString());
-        post.put(Constants.KEY_POST_TIMESTAMP, System.currentTimeMillis());
+        post.put(Constants.KEY_POST_TIMESTAMP, Timestamp.now());
         if (encodedImage != null) {
             post.put(Constants.KEY_POST_IMAGE, encodedImage);
         }
         database.collection(Constants.KEY_COLLECTION_POSTS)
                 .add(post)
                 .addOnSuccessListener(documentReference -> {
-                    showToast("Posted Successfully");
-                    binding.layoutCreatePost.editTextPost.setText(null);
-                    binding.layoutCreatePost.imageViewPreview.setImageBitmap(null);
-                    binding.layoutCreatePost.imageViewPreview.setVisibility(View.GONE);
-                    encodedImage = null;
+                    if (getActivity() == null) {
+                        return;
+                    }
+                    getActivity().runOnUiThread(() -> {
+                        loading(false);
+                        showToast("Posted Successfully");
+                        Log.d("HomeFragment", "Post added successfully: " + documentReference.getId());
+
+                        // Tạo một đối tượng Post mới và thêm vào danh sách
+                        Post newPost = new Post();
+                        newPost.setId(documentReference.getId());
+                        newPost.setUserId(preferenceManager.getString(Constants.KEY_USER_ID));
+                        newPost.setContent(binding.layoutCreatePost.editTextPost.getText().toString());
+                        newPost.setImageUrl(encodedImage);
+                        newPost.setTimestamp(Timestamp.now());
+                        posts.add(0, newPost);
+                        Log.d("HomeFragment", "New post added to list. List size: " + posts.size());
+                        postAdapter.notifyItemInserted(0);
+                        binding.recyclerViewPosts.smoothScrollToPosition(0);
+
+                        // Reset form
+                        binding.layoutCreatePost.editTextPost.setText("");
+                        binding.layoutCreatePost.imageViewPreview.setVisibility(View.GONE);
+                        encodedImage = null;
+                    });
                 })
                 .addOnFailureListener(exception -> {
-                    showToast(exception.getMessage());
+                    if (getActivity() == null) {
+                        return;
+                    }
+                    getActivity().runOnUiThread(() -> {
+                        loading(false);
+                        showToast(exception.getMessage());
+                        Log.e("HomeFragment", "Failed to add post", exception);
+                    });
                 });
+
     }
+
 
     private Boolean isValidPostDetails() {
         if (binding.layoutCreatePost.editTextPost.getText().toString().trim().isEmpty() && encodedImage == null) {
@@ -155,6 +203,7 @@ public class HomeFragment extends Fragment {
 
     private final EventListener<QuerySnapshot> eventListener = (value, error) -> {
         if (error != null) {
+            Log.e("HomeFragment", "Firestore listening failed", error);
             return;
         }
         if (value != null) {
@@ -165,13 +214,35 @@ public class HomeFragment extends Fragment {
                     post.setUserId(documentChange.getDocument().getString(Constants.KEY_USER_ID));
                     post.setContent(documentChange.getDocument().getString(Constants.KEY_POST_CONTENT));
                     post.setImageUrl(documentChange.getDocument().getString(Constants.KEY_POST_IMAGE));
-                    post.setTimestamp(documentChange.getDocument().getTimestamp(Constants.KEY_POST_TIMESTAMP));
-                    posts.add(post);
+                    Object timestampObject = documentChange.getDocument().get(Constants.KEY_POST_TIMESTAMP);
+                    if (timestampObject instanceof Timestamp) {
+                        post.setTimestamp((Timestamp) timestampObject);
+                    } else if (timestampObject instanceof Long) {
+                        // Nếu timestamp được lưu dưới dạng số (milliseconds)
+                        long milliseconds = (Long) timestampObject;
+                        post.setTimestamp(new Timestamp(new Date(milliseconds)));
+                    } else {
+                        Log.e("HomeFragment", "Unexpected timestamp type: " + timestampObject.getClass().getName());
+                    }
+                    posts.add(0, post); // Thêm vào đầu danh sách
+                    postAdapter.notifyItemInserted(0);
                 }
             }
-            Collections.sort(posts, (obj1, obj2) -> obj2.getTimestamp().compareTo(obj1.getTimestamp()));
-            postAdapter.notifyDataSetChanged();
+            // Không cần sắp xếp lại nếu bạn luôn thêm vào đầu danh sách
+            // Collections.sort(posts, (obj1, obj2) -> obj2.getTimestamp().compareTo(obj1.getTimestamp()));
+            // postAdapter.notifyDataSetChanged();
             binding.recyclerViewPosts.smoothScrollToPosition(0);
         }
     };
+
+
+    private void loading(Boolean isLoading) {
+        if (isLoading) {
+            binding.layoutCreatePost.buttonPost.setVisibility(View.INVISIBLE);
+            binding.layoutCreatePost.progressBar.setVisibility(View.VISIBLE);
+        } else {
+            binding.layoutCreatePost.buttonPost.setVisibility(View.VISIBLE);
+            binding.layoutCreatePost.progressBar.setVisibility(View.INVISIBLE);
+        }
+    }
 }
