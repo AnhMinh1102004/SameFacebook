@@ -12,6 +12,8 @@ public class Post {
     private Timestamp timestamp;
     private int likes;
     private List<String> commentIds;
+    private String userName;
+    private String userImage;
 
     // Constructor mặc định cần thiết cho Firestore
     public Post() {}
@@ -36,6 +38,8 @@ public class Post {
     public Timestamp getTimestamp() { return timestamp; }
     public int getLikes() { return likes; }
     public List<String> getCommentIds() { return commentIds; }
+    public String getUserName() { return userName; }
+    public String getUserImage() { return userImage; }
 
     // Setters
     public void setId(String id) { this.id = id; }
@@ -46,6 +50,8 @@ public class Post {
     public void setTimestamp(Timestamp timestamp) { this.timestamp = timestamp; }
     public void setLikes(int likes) { this.likes = likes; }
     public void setCommentIds(List<String> commentIds) { this.commentIds = commentIds; }
+    public void setUserName(String userName) { this.userName = userName; }
+    public void setUserImage(String userImage) { this.userImage = userImage; }
 
     // Phương thức tiện ích
     public void incrementLikes() {

@@ -68,4 +68,6 @@ public class Constants {
         }
         return remoteMsgHeaders;
     }
+    public static final String KEY_USER_NAME = "userName";
+    public static final String KEY_USER_IMAGE = "userImage";
 }

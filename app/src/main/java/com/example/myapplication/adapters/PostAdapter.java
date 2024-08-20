@@ -54,13 +54,16 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         }
 
         void setPostData(Post post) {
+            if (post.getUserImage() != null && !post.getUserImage().isEmpty()) {
+                new DecodeImageTask(binding.imageProfile).execute(post.getUserImage());
+            }
             if (post == null) {
                 Log.e("PostAdapter", "Post is null");
                 return;
             }
 
             Log.d("PostAdapter", "Setting post data: " + post.getId());
-            binding.textUsername.setText(post.getUserId() != null ? post.getUserId() : "");
+            binding.textUsername.setText(post.getUserName() != null ? post.getUserName() : "");
             binding.textTimestamp.setText(post.getTimestamp() != null ? post.getTimestamp().toDate().toString() : "");
             binding.textPostContent.setText(post.getContent() != null ? post.getContent() : "");
             binding.textLikeCount.setText(String.valueOf(post.getLikes()));
