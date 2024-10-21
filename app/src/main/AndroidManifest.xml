@@ -36,7 +36,9 @@
         <activity
             android:name=".activities.home.AllFriendActivity"
             android:exported="false" />
-
+        <activity
+            android:name=".activities.home.UserInfoActivity"
+            android:exported="false" />
         <activity
             android:name=".activities.account.ChangePasswordActivity"
             android:exported="false" />
@@ -77,6 +79,7 @@
         </activity>
         <activity
             android:name=".activities.home.MainActivity"
+            android:launchMode="singleTop"
             android:exported="true" />
 
         <service

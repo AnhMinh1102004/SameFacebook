@@ -7,7 +7,6 @@ import android.view.MenuItem;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 
 import com.example.myapplication.R;
@@ -18,10 +17,7 @@ import com.example.myapplication.fragments.HomeFragment;
 import com.example.myapplication.fragments.ProfileFragment;
 import com.example.myapplication.utilities.Constants;
 import com.example.myapplication.utilities.PreferenceManager;
-import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.messaging.FirebaseMessaging;
@@ -50,6 +46,7 @@ public class MainActivity extends BaseActivity  implements BottomNavigationView.
             binding.bottomNavigationView.setOnNavigationItemSelectedListener(this);
 
             loadFragment(new HomeFragment());
+
 
             getToken();
         } catch (Exception e) {
@@ -80,16 +77,36 @@ public class MainActivity extends BaseActivity  implements BottomNavigationView.
         return false;
     }
 
-    private void loadFragment(Fragment fragment) {
-        try {
-            getSupportFragmentManager().beginTransaction()
-                    .replace(R.id.frame_layout, fragment)
-                    .commit();
-            Log.d("MainActivity", "Đã tải fragment: " + fragment.getClass().getSimpleName());
-        } catch (Exception e) {
-            Log.e("MainActivity", "Lỗi khi tải fragment", e);
-            showToast("Lỗi khi tải nội dung. Vui lòng thử lại.");
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        handleIntent(intent);
+    }
+
+    private void handleIntent(Intent intent) {
+        if (intent != null) {
+            String fragmentToLoad = intent.getStringExtra("fragment");
+            if (fragmentToLoad != null) {
+                switch (fragmentToLoad) {
+                    case "home":
+                        binding.bottomNavigationView.setSelectedItemId(R.id.navigation_home);
+                        break;
+                    case "friends":
+                        loadFragment(new FriendFragment());
+                        binding.bottomNavigationView.setSelectedItemId(R.id.navigation_friends);
+                        break;
+                    case "profile":
+                        loadFragment(new ProfileFragment());
+                        binding.bottomNavigationView.setSelectedItemId(R.id.navigation_profile);
+                        break;
+                }
+            }
         }
+    }
+    private void loadFragment(Fragment fragment) {
+        getSupportFragmentManager().beginTransaction()
+                .replace(R.id.frame_layout, fragment)
+                .commit();
     }
 
 
@@ -110,4 +127,5 @@ public class MainActivity extends BaseActivity  implements BottomNavigationView.
     private void showToast(String message) {
         Toast.makeText(getApplicationContext(), message, Toast.LENGTH_SHORT).show();
     }
+
 }

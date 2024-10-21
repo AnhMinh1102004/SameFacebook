@@ -1,5 +1,6 @@
 package com.example.myapplication.activities.post;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -98,8 +99,9 @@ public class CommentActivity extends AppCompatActivity {
         binding.layoutPost.buttonLike.setSelected(post.isLikedBy(preferenceManager.getString(Constants.KEY_USER_ID)));
         binding.layoutPost.textLikeCount.setText(String.valueOf(post.getLikes()));
 
+        binding.layoutPost.textCommentCount.setText(String.valueOf(post.getCommentCount()));
         // Disable comment button in this view
-        binding.layoutPost.buttonComment.setVisibility(View.GONE);
+        // binding.layoutPost.buttonComment.setVisibility(View.GONE);
     }
 
     private void setupCommentsList() {
@@ -110,7 +112,7 @@ public class CommentActivity extends AppCompatActivity {
     }
 
     private void setListeners() {
-        binding.buttonBack.setOnClickListener(v -> onBackPressed());
+        binding.buttonClose.setOnClickListener(v -> closeAndRefresh());
         binding.buttonAddImage.setOnClickListener(v -> openFileChooser());
         binding.buttonSendComment.setOnClickListener(v -> sendComment());
     }
@@ -129,6 +131,12 @@ public class CommentActivity extends AppCompatActivity {
             imageUri = data.getData();
             // You might want to show a preview of the selected image
         }
+    }
+    private void closeAndRefresh() {
+        Intent resultIntent = new Intent();
+        resultIntent.putExtra("refreshRequired", true);
+        setResult(Activity.RESULT_OK, resultIntent);
+        finish();
     }
 
     private void sendComment() {
@@ -176,13 +184,20 @@ public class CommentActivity extends AppCompatActivity {
                     Toast.makeText(CommentActivity.this, "Comment added successfully", Toast.LENGTH_SHORT).show();
                     binding.editTextComment.setText("");
                     imageUri = null;
-                    loadComments(); // Reload comments after adding a new one
+                    DocumentReference postRef = database.collection("posts").document(post.getId());
+                    postRef.update("commentCount", post.getCommentCount() + 1)
+                            .addOnSuccessListener(aVoid -> {
+                                post.setCommentCount(post.getCommentCount() + 1);
+                                updateCommentCount();
+                            });
+                    loadComments();
                 })
                 .addOnFailureListener(e -> Toast.makeText(CommentActivity.this, "Failed to add comment", Toast.LENGTH_SHORT).show());
     }
 
-
-
+    private void updateCommentCount() {
+        binding.layoutPost.textCommentCount.setText(String.valueOf(post.getCommentCount()));
+    }
     private void loadComments() {
         commentsListener = database.collection("posts").document(post.getId())
                 .collection("comments")
@@ -224,6 +239,8 @@ public class CommentActivity extends AppCompatActivity {
                     commentAdapter.notifyDataSetChanged();
                 });
     }
+
+
 
     @Override
     protected void onDestroy() {

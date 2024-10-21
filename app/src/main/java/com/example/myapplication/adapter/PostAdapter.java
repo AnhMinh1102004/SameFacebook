@@ -24,8 +24,12 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
     private List<Post> posts;
     private String currentUserId;
     private OnLikeClickListener likeClickListener;
-
     private OnCommentClickListener commentClickListener;
+    private OnDeleteClickListener deleteClickListener;
+
+    public interface OnDeleteClickListener {
+        void onDeleteClick(Post post, int position);
+    }
 
     public interface OnCommentClickListener {
         void onCommentClick(Post post);
@@ -34,11 +38,12 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         void onLikeClick(Post post, int position);
     }
 
-    public PostAdapter(List<Post> posts, String currentUserId, OnLikeClickListener likeClickListener, OnCommentClickListener commenClicktListener) {
+    public PostAdapter(List<Post> posts, String currentUserId, OnLikeClickListener likeClickListener, OnCommentClickListener commenClicktListener, OnDeleteClickListener deleteClickListener) {
         this.posts = posts;
         this.currentUserId = currentUserId;
         this.likeClickListener = likeClickListener;
         this.commentClickListener = commenClicktListener;
+        this.deleteClickListener = deleteClickListener;
     }
 
 
@@ -104,8 +109,17 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
                     commentClickListener.onCommentClick(post);
                 }
             });
-
-
+            binding.textCommentCount.setText(String.valueOf(post.getCommentCount()));
+            if (post.getUserId().equals(currentUserId)) {
+                binding.buttonDelete.setVisibility(View.VISIBLE);
+                binding.buttonDelete.setOnClickListener(v -> {
+                    if (deleteClickListener != null) {
+                        deleteClickListener.onDeleteClick(post, getAdapterPosition());
+                    }
+                });
+            } else {
+                binding.buttonDelete.setVisibility(View.GONE);
+            }
         }
 
 

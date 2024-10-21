@@ -24,12 +24,13 @@ public class Post implements Serializable {
     private List<String> commentIds;
     private String userName;
     private String userImage;
+    private int commentCount;
 
     // Constructor mặc định cần thiết cho Firestore
     public Post() {}
 
     // Constructor sử dụng Timestamp
-    public Post(String id, String userId, String content, String imageUrl, String videoUrl, Timestamp timestamp, int likes, List<String> commentIds) {
+    public Post(String id, String userId, String content, String imageUrl, String videoUrl, Timestamp timestamp, int likes, List<String> commentIds, int commentCount) {
         this.id = id;
         this.userId = userId;
         this.content = content;
@@ -38,6 +39,7 @@ public class Post implements Serializable {
         setTimestamp(timestamp);
         this.likes = likes;
         this.commentIds = commentIds;
+        this.commentCount = commentCount;
     }
 
     // Getters
@@ -56,6 +58,9 @@ public class Post implements Serializable {
     public List<String> getCommentIds() { return commentIds; }
     public String getUserName() { return userName; }
     public String getUserImage() { return userImage; }
+    public int getCommentCount() {
+        return commentCount;
+    }
 
 
     // Setters
@@ -78,17 +83,12 @@ public class Post implements Serializable {
     public void setCommentIds(List<String> commentIds) { this.commentIds = commentIds; }
     public void setUserName(String userName) { this.userName = userName; }
     public void setUserImage(String userImage) { this.userImage = userImage; }
+    public void setCommentCount(int commentCount) {
+        this.commentCount = commentCount;
+    }
 
     // Phương thức tiện ích
-    public void incrementLikes() {
-        this.likes++;
-    }
 
-    public void decrementLikes() {
-        if (this.likes > 0) {
-            this.likes--;
-        }
-    }
 
     public Date getDate() {
         return new Date(timestamp);

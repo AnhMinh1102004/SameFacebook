@@ -12,9 +12,7 @@ import android.widget.Toast;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.example.myapplication.activities.home.MainActivity;
 import com.example.myapplication.databinding.ActivityChangePasswordBinding;
-import com.example.myapplication.fragments.HomeFragment;
 import com.example.myapplication.utilities.Constants;
 import com.example.myapplication.utilities.PreferenceManager;
 import com.google.firebase.auth.AuthCredential;
@@ -26,7 +24,6 @@ import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.HashMap;
 
 public class ChangePasswordActivity extends AppCompatActivity {
     private static final int PICK_IMAGE_REQUEST = 1;

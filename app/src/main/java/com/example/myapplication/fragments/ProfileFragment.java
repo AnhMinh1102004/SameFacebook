@@ -16,6 +16,8 @@ import androidx.fragment.app.Fragment;
 
 import com.example.myapplication.activities.account.ChangePasswordActivity;
 import com.example.myapplication.activities.account.SignInActivity;
+import com.example.myapplication.activities.account.SignUpActivity;
+import com.example.myapplication.activities.home.UserInfoActivity;
 import com.example.myapplication.databinding.FragmentProfileBinding;
 import com.example.myapplication.utilities.Constants;
 import com.example.myapplication.utilities.PreferenceManager;
@@ -65,7 +67,6 @@ public class ProfileFragment extends Fragment {
                             Bitmap bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
                             binding.imageProfile.setImageBitmap(bitmap);
                         }
-                        // Cập nhật các thông tin khác nếu cần
                     }
                 });
     }
@@ -90,6 +91,11 @@ public class ProfileFragment extends Fragment {
                 startActivity(new Intent(getActivity(), ChangePasswordActivity.class)));
 
         binding.buttonSignOut.setOnClickListener(v -> signOut());
+        binding.layoutUserInfo.setOnClickListener(v -> {
+            Intent intent = new Intent(getActivity(), UserInfoActivity.class);
+            startActivity(intent);
+        });
+
     }
 
     private void signOut() {

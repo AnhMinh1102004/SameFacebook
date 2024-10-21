@@ -38,6 +38,16 @@
             app:layout_constraintStart_toStartOf="@id/textUsername"
             app:layout_constraintTop_toBottomOf="@id/textUsername" />
 
+        <androidx.appcompat.widget.AppCompatImageView
+            android:id="@+id/buttonDelete"
+            android:layout_width="25dp"
+            android:layout_height="25dp"
+            android:layout_marginEnd="8dp"
+            android:src="@drawable/ic_close"
+            android:scaleType="centerCrop"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
         <TextView
             android:id="@+id/textPostContent"
             android:layout_width="0dp"

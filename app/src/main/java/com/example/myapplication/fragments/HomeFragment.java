@@ -13,6 +13,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
@@ -34,6 +35,8 @@ import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
+import com.example.myapplication.interfaces.PostBindingInterface;
+
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -44,7 +47,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class HomeFragment extends Fragment implements PostAdapter.OnLikeClickListener, PostAdapter.OnCommentClickListener {
+public class HomeFragment extends Fragment implements PostAdapter.OnLikeClickListener, PostAdapter.OnCommentClickListener, PostAdapter.OnDeleteClickListener {
 
     private FragmentHomeBinding binding;
     private Set<String> addedPostIds = new HashSet<>();
@@ -58,6 +61,10 @@ public class HomeFragment extends Fragment implements PostAdapter.OnLikeClickLis
     private Set<String> friendIds;
     private boolean isLoading = false;
     private static final int PICK_IMAGE_REQUEST = 1;
+    private static final int COMMENT_ACTIVITY_REQUEST_CODE = 1;
+    private static final int POSTS_PER_PAGE = 10;
+    private DocumentSnapshot lastVisible;
+    private boolean isLastItemReached = false;
 
     @Nullable
     @Override
@@ -76,7 +83,35 @@ public class HomeFragment extends Fragment implements PostAdapter.OnLikeClickLis
     }
 
 
-   /* private void updateOldPosts() {
+   /*
+   private void updatePostsWithCommentCount() {
+    FirebaseFirestore db = FirebaseFirestore.getInstance();
+    db.collection(Constants.KEY_COLLECTION_POSTS)
+        .get()
+        .addOnCompleteListener(task -> {
+            if (task.isSuccessful()) {
+                for (QueryDocumentSnapshot document : task.getResult()) {
+                    String postId = document.getId();
+                    db.collection(Constants.KEY_COLLECTION_POSTS)
+                        .document(postId)
+                        .collection("comments")
+                        .get()
+                        .addOnSuccessListener(commentSnapshots -> {
+                            int commentCount = commentSnapshots.size();
+                            document.getReference().update("commentCount", commentCount)
+                                .addOnSuccessListener(aVoid -> Log.d("HomeFragment", "Comment count updated for post: " + postId))
+                                .addOnFailureError(e -> Log.e("HomeFragment", "Error updating comment count for post: " + postId, e));
+                        })
+                        .addOnFailureListener(e -> Log.e("HomeFragment", "Error getting comments for post: " + postId, e));
+                }
+            } else {
+                Log.e("HomeFragment", "Error getting posts: ", task.getException());
+            }
+        });
+}
+
+
+   private void updateOldPosts() {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
         db.collection(Constants.KEY_COLLECTION_POSTS)
                 .get()
@@ -102,18 +137,38 @@ public class HomeFragment extends Fragment implements PostAdapter.OnLikeClickLis
     private void init() {
         posts = new ArrayList<>();
         String currentUserId = preferenceManager.getString(Constants.KEY_USER_ID);
-        postAdapter = new PostAdapter(posts, currentUserId, this,this);
+        postAdapter = new PostAdapter(posts, currentUserId, this,this, this);
         binding.recyclerViewPosts.setAdapter(postAdapter);
         binding.recyclerViewPosts.setLayoutManager(new LinearLayoutManager(getContext()));
         database = FirebaseFirestore.getInstance();
         friendIds = new HashSet<>();
     }
     @Override
+    public void onDeleteClick(Post post, int position) {
+        new AlertDialog.Builder(requireContext())
+                .setTitle("Xóa bài viết")
+                .setMessage("Bạn có chắc chắn muốn xóa bài viết này?")
+                .setPositiveButton("Xóa", (dialog, which) -> deletePost(post, position))
+                .setNegativeButton("Hủy", null)
+                .show();
+    }
+    private void deletePost(Post post, int position) {
+        database.collection(Constants.KEY_COLLECTION_POSTS)
+                .document(post.getId())
+                .delete()
+                .addOnSuccessListener(aVoid -> {
+                    removePost(post.getId());
+                    showToast("Bài viết đã được xóa");
+                })
+                .addOnFailureListener(e -> showToast("Không thể xóa bài viết: " + e.getMessage()));
+    }
+
+    @Override
     public void onCommentClick(Post post) {
         if (getActivity() != null) {
             Intent intent = new Intent(getActivity(), CommentActivity.class);
             intent.putExtra("post", post);
-            startActivity(intent);
+            startActivityForResult(intent, COMMENT_ACTIVITY_REQUEST_CODE);
         }
     }
     @Override
@@ -178,6 +233,21 @@ public class HomeFragment extends Fragment implements PostAdapter.OnLikeClickLis
             binding.layoutCreatePost.imageViewPreview.setImageURI(imageUri);
             binding.layoutCreatePost.imageViewPreview.setVisibility(View.VISIBLE);
         }
+        if (requestCode == COMMENT_ACTIVITY_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
+            if (data != null && data.getBooleanExtra("refreshRequired", false)) {
+                refreshPosts();
+            }
+        }
+    }
+
+    private void refreshPosts() {
+        // Xóa danh sách bài đăng hiện tại
+        posts.clear();
+        addedPostIds.clear();
+        postAdapter.notifyDataSetChanged();
+
+        // Tải lại dữ liệu
+        setupPostsListener();
     }
 
     private void uploadPost() {
@@ -281,6 +351,7 @@ public class HomeFragment extends Fragment implements PostAdapter.OnLikeClickLis
         post.setTimestamp(document.getTimestamp(Constants.KEY_POST_TIMESTAMP));
         post.setLikes(document.getLong("likes") != null ? document.getLong("likes").intValue() : 0);
         post.setLikedBy((List<String>) document.get("likedBy"));
+        post.setCommentCount(document.getLong("commentCount") != null ? document.getLong("commentCount").intValue() : 0);
         return post;
     }
 
@@ -289,13 +360,8 @@ public class HomeFragment extends Fragment implements PostAdapter.OnLikeClickLis
         String postId = document.getId();
         for (int i = 0; i < posts.size(); i++) {
             if (posts.get(i).getId().equals(postId)) {
-                Post post = posts.get(i);
-                post.setUserId(document.getString(Constants.KEY_USER_ID));
-                post.setContent(document.getString(Constants.KEY_POST_CONTENT));
-                post.setImageUrl(document.getString(Constants.KEY_POST_IMAGE));
-                post.setUserName(document.getString(Constants.KEY_USER_NAME));
-                post.setUserImage(document.getString(Constants.KEY_USER_IMAGE));
-                post.setTimestamp(document.getTimestamp(Constants.KEY_POST_TIMESTAMP));
+                Post updatedPost = createPostFromDocument(document);
+                posts.set(i, updatedPost);
                 postAdapter.notifyItemChanged(i);
                 break;
             }
@@ -316,6 +382,8 @@ public class HomeFragment extends Fragment implements PostAdapter.OnLikeClickLis
 
 
 
+
+
     private void savePostToDatabase(String imageUrl, String postText) {
         Map<String, Object> post = new HashMap<>();
         post.put(Constants.KEY_USER_ID, preferenceManager.getString(Constants.KEY_USER_ID));
@@ -325,6 +393,7 @@ public class HomeFragment extends Fragment implements PostAdapter.OnLikeClickLis
         post.put(Constants.KEY_POST_TIMESTAMP, Timestamp.now());
         post.put("likes", 0); // Thêm trường likes
         post.put("likedBy", new ArrayList<String>()); // Thêm trường likedBy
+        post.put("commentCount", 0);
         if (imageUrl != null) {
             post.put(Constants.KEY_POST_IMAGE, imageUrl);
         }
@@ -399,6 +468,7 @@ public class HomeFragment extends Fragment implements PostAdapter.OnLikeClickLis
             binding.layoutCreatePost.progressBar.setVisibility(View.INVISIBLE);
         }
     }
+
     @Override
     public void onDestroyView() {
         super.onDestroyView();

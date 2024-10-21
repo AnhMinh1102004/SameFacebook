@@ -57,7 +57,11 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.CommentV
 
         void setCommentData(Comment comment) {
             binding.textUsername.setText(comment.getUserName());
-            binding.textCommentContent.setText(comment.getContent());
+            if (comment.getContent() != null && !comment.getContent().isEmpty()) {
+                binding.textCommentContent.setText(comment.getContent());
+            } else {
+                binding.textCommentContent.setVisibility(View.GONE);
+            }
             binding.textTimestamp.setText(comment.getFormattedDate());
 
             if (comment.getUserImage() != null && !comment.getUserImage().isEmpty()) {

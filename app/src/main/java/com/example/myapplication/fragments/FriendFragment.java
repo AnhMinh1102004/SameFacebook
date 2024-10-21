@@ -445,6 +445,5 @@ public class FriendFragment extends Fragment implements FriendRequestAdapter.OnF
         if (friendListListener != null) {
             friendListListener.remove();
         }
-        binding = null;
     }
 }
